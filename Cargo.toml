@@ -1,0 +1,20 @@
+# Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
+
+[package]
+name = "windows_scm_plugin"
+version = "0.0.1"
+authors = ["alex@staticlibs.net"]
+edition = "2018"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+deno_core = "0.88.1"
+futures = "0.3.9"
+serde = "1"
+libc = "0.2"
+winapi = { version = "0.3", features = ["winsvc"] }
+widestring = "0.4"
+
