@@ -23,10 +23,10 @@ install:
 build_script:
   - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
   - cargo build --release
-  - rename target\release\windows_scm_plugin.dll windows_scm_plugin_%APPVEYOR_REPO_TAG_NAME%.dll
+  - rename target\release\ rename windows_scm_plugin.dll windows_scm_plugin_%APPVEYOR_REPO_TAG_NAME%.dll
 
 artifacts:
-  - path: windows_scm_plugin_%APPVEYOR_REPO_TAG_NAME%.dll
+  - path: target\release\windows_scm_plugin_%APPVEYOR_REPO_TAG_NAME%.dll
     name: windows_scm_plugin_%APPVEYOR_REPO_TAG_NAME%.dll
 
 deploy:
