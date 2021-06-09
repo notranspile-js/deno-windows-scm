@@ -1,1 +1,0 @@
-sc create foo binpath="C:\apps\deno\deno.exe run --unstable --allow-plugin --allow-read --allow-write C:\projects\notranspile\deno-windows-scm\test\test.js C:\projects\notranspile\deno-windows-scm\target\release\windows_scm_plugin.dll"
