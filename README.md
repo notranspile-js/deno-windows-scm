@@ -1,6 +1,8 @@
 Windows SCM Deno plugin
 =======================
 
+[![appveyor](https://ci.appveyor.com/api/projects/status/github/notranspile-js/deno-windows-scm?svg=true)](https://ci.appveyor.com/project/staticlibs/deno-windows-scm)
+
 Native plugin for [Deno](https://deno.land/) that allows to control scripts from
 Windows [Service Control Manager](https://docs.microsoft.com/en-us/windows/win32/services/service-control-manager).
 
@@ -10,7 +12,7 @@ Usage example
 Create SCM service using [sc tool](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/sc-create), run from console with Administrator privileges:
 
 ```
-sc create myservice binpath="path\to\deno.exe run --unstable --allow-plugin path\to\script.js
+sc create myservice binpath="path\to\deno.exe run --unstable --allow-plugin path\to\script.js"
 ```
 
 In `script.js`:
