@@ -2,7 +2,7 @@
 
 [package]
 name = "windows_scm_plugin"
-version = "0.0.1"
+version = "0.9.0"
 authors = ["alex@staticlibs.net"]
 edition = "2018"
 publish = false
