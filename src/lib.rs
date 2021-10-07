@@ -14,44 +14,122 @@
  * limitations under the License.
  */
 
-use std::cell::RefCell;
+use std::error;
+use std::fmt;
+use std::fs;
+use std::fs::OpenOptions;
 use std::mem::size_of;
+use std::mem::transmute;
 use std::ptr::null_mut;
-use std::rc::Rc;
-use std::thread;
 
-use deno_core::error::AnyError;
-use deno_core::error::generic_error;
-use deno_core::op_async;
-use deno_core::Extension;
-use deno_core::OpState;
-use futures::channel::oneshot;
-use serde::Deserialize;
+use chrono;
+use serde_derive::Deserialize;
+use serde_json;
+use widestring::U16CStr;
 use widestring::U16CString;
 use winapi::shared::winerror;
+use winapi::um::errhandlingapi::GetLastError;
+use winapi::um::libloaderapi;
 use winapi::um::winnt;
 use winapi::um::winsvc;
-use winapi::um::errhandlingapi::GetLastError;
 use winapi::shared::minwindef::DWORD;
+use winapi::shared::minwindef::HMODULE;
 use winapi::shared::minwindef::LPVOID;
+use winapi::shared::ntdef::LPCWSTR;
 use winapi::shared::ntdef::LPWSTR;
+use std::io::Write;
 
-#[no_mangle]
-pub fn init() -> Extension {
-  Extension::builder()
-    .ops(vec![
-      ("op_winscm_start_dispatcher", op_async(op_winscm_start_dispatcher)),
-    ])
-    .build()
+#[derive(Debug, Clone)]
+struct SCMError {
+  msg: String,
+  code: DWORD
 }
 
+impl SCMError {
+  fn new(msg: String, code: DWORD) -> SCMError {
+      SCMError { msg, code }
+  }
+}
+
+impl fmt::Display for SCMError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "WinSCM error, code: [{}], message: [{}]", self.code, &self.msg)
+  }
+}
+
+impl error::Error for SCMError { }
+
+#[allow(non_snake_case)]
 #[derive(Deserialize)]
-struct Args {
-  name: String
+struct SCMConfig {
+  serviceName: String,
+  logFilePath: String
 }
 
-fn op_error_class(_: &AnyError) -> &'static str {
-  return "Error";
+fn get_dll_path(max_size: u16) -> Result<String, SCMError>  {
+  unsafe {
+    let mut hm: HMODULE = null_mut();
+
+    let res_mh = libloaderapi::GetModuleHandleExW(
+      libloaderapi::GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+          libloaderapi::GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+      transmute::<*const (), LPCWSTR>(winscm_start_dispatcher as *const ()),
+      &mut hm as *mut HMODULE);
+    if 0 == res_mh {
+      return Err(SCMError::new(
+        "GetModuleHandleExW error".to_string(), GetLastError()));
+    }
+
+    let mut vec: Vec<u16> = vec![0; max_size as usize];
+    let ptr: LPWSTR = vec.as_mut_ptr();
+    let len = libloaderapi::GetModuleFileNameW(hm, ptr, vec.len() as DWORD);
+    if !(len > 0 && len < max_size.into()) {
+      return Err(SCMError::new(format!(
+        "GetModuleFileNameW error, returned length: [{}]", len), GetLastError()));
+    }
+
+    let cstr = U16CStr::from_ptr_with_nul(ptr, len as usize);
+    match cstr.to_string() {
+      Ok(str) => Ok(str),
+      Err(e) => Err(SCMError::new(format!(
+        "GetModuleFileNameW UTF-8 error, message: [{}]", e), 1))
+    }
+  }
+}
+
+fn read_config() -> Result<SCMConfig, SCMError> {
+  let dll_path = get_dll_path(1024)?;
+  let config_path = dll_path + ".config.json";
+  let json = match fs::read_to_string(&config_path) {
+    Ok(json) => json,
+    Err(e) => return Err(SCMError::new(format!(
+      "Error reading config file, path: [{}], message: [{}]", &config_path, e.to_string()
+    ), e.raw_os_error().unwrap_or(1) as u32))
+  };
+  match serde_json::from_str(&json) {
+    Ok(conf) => Ok(conf),
+    Err(e) => return Err(SCMError::new(format!(
+      "Error deserializing config file, path: [{}], message: [{}]", &config_path, e.to_string()
+    ), 1))
+  }
+}
+
+fn write_to_log(conf: &SCMConfig, msg: String) -> () {
+  if conf.logFilePath.is_empty() {
+    return;
+  }
+  match OpenOptions::new()
+      .create(true)
+      .write(true)
+      .append(true)
+      .open(&conf.logFilePath) {
+    Err(_) => (),
+    Ok(mut file) => {
+      let tm = chrono::Local::now();
+      let tm_formatted = tm.to_rfc3339_opts(chrono::SecondsFormat::Secs, false);
+      let _ = file.write_all(format!("{} {}\r\n", tm_formatted, msg).as_bytes());
+    }
+  }
 }
 
 fn status_str(status: DWORD) -> String {
@@ -64,7 +142,7 @@ fn status_str(status: DWORD) -> String {
   }
 }
 
-unsafe fn set_service_status(ha: winsvc::SERVICE_STATUS_HANDLE, status: DWORD) -> Result<(), AnyError> {
+unsafe fn set_service_status(ha: winsvc::SERVICE_STATUS_HANDLE, status: DWORD) -> Result<(), SCMError> {
   let mut st = winsvc::SERVICE_STATUS {
     dwServiceType: winnt::SERVICE_WIN32_OWN_PROCESS,
     dwCurrentState: status,
@@ -80,7 +158,8 @@ unsafe fn set_service_status(ha: winsvc::SERVICE_STATUS_HANDLE, status: DWORD) -
 
   let success = winsvc::SetServiceStatus(ha, &mut st);
   match success {
-    0 => Err(generic_error(format!("SetServiceStatus error, status: [{}], code: [{}]", status_str(status), GetLastError()))),
+    0 => Err(SCMError::new(format!(
+      "SetServiceStatus error, status: [{}]", status_str(status)), GetLastError())),
     _ => Ok(())
   }
 }
@@ -132,13 +211,14 @@ fn service_main(_: DWORD, args: *mut LPWSTR) -> () {
   ()
 }
 
-fn start_dispatcher(name: &str) -> Result<(), AnyError> {
+fn start_dispatcher(name: &str) -> Result<(), SCMError> {
   unsafe {
     // call SCM
     let wname = match U16CString::from_str(name) {
       Ok(val) => val,
       Err(_) => {
-        return Err(generic_error(format!("Name widen error, value: [{}]", name)))
+        return Err(SCMError::new(format!(
+          "Name widen error, value: [{}]", name), 1))
       }
     };
     let st = vec![
@@ -157,30 +237,36 @@ fn start_dispatcher(name: &str) -> Result<(), AnyError> {
     // thread for the calling process. This call returns when the service has
     // stopped. The process should simply terminate when the call returns.
     match winsvc::StartServiceCtrlDispatcherW(st.as_ptr()) {
-      0 => Err(generic_error(format!(
-        "StartServiceCtrlDispatcherW error, name: [{}], code: [{}]", name, GetLastError()))),
+      0 => Err(SCMError::new(format!(
+        "StartServiceCtrlDispatcherW error, name: [{}]", name), GetLastError())),
       _ => Ok(())
     }
   }
 }
 
-async fn op_winscm_start_dispatcher(
-  state: Rc<RefCell<OpState>>,
-  args: Args,
-  _: (),
-) -> Result<(), AnyError> {
-  state.borrow_mut().get_error_class_fn = &op_error_class;
+#[no_mangle]
+pub extern "C"
+fn winscm_start_dispatcher() -> i32 {
 
-  // spawn thread
-  let (tx, rx) = oneshot::channel::<Result<(), AnyError>>();
-  thread::spawn(move || {
-    let res = start_dispatcher(&args.name);
-    tx.send(res).expect("winscm: async op channel send failure");
-  });
+  let conf = match read_config() {
+    Ok(conf) => conf,
+    Err(_) => return -1
+  };
 
-  // wait for thread to exit
-  match rx.await {
-    Ok(ok) => ok,
-    Err(_) => Err(generic_error("Async op channel receive failure"))
+  if !conf.logFilePath.is_empty() {
+    let _ = fs::remove_file(&conf.logFilePath);
+  }
+
+  write_to_log(&conf, format!("Is due to call SCM dispatcher, service name: [{}]", &conf.serviceName));
+
+  match start_dispatcher(&conf.serviceName) {
+    Ok(_) => {
+      write_to_log(&conf, "SCM dispatcher run complete, service is stopping now".to_string());
+      0
+    },
+    Err(e) => {
+      write_to_log(&conf, format!("SCM dispatcher error, code: [{}], message: [{}]", e.code, &e.msg));
+      1
+    }
   }
 }

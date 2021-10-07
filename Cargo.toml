@@ -13,7 +13,7 @@
 # limitations under the License.
 
 [package]
-name = "windows_scm_plugin"
+name = "deno_windows_scm"
 version = "1.0.0"
 authors = ["alex@staticlibs.net"]
 edition = "2018"
@@ -23,10 +23,11 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-deno_core = "0.88.1"
-futures = "0.3.9"
-serde = "1"
+chrono = "0.4.19"
 libc = "0.2"
-winapi = { version = "0.3", features = ["winsvc"] }
+serde = "1.0"
+serde_derive = "1.0"
+serde_json = "1.0"
 widestring = "0.4"
+winapi = { version = "0.3", features = ["errhandlingapi", "libloaderapi", "winerror", "winsvc"] }
 

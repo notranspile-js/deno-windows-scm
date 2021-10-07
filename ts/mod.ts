@@ -1,5 +1,5 @@
 /*
- * Copyright 2017, alex at staticlibs.net
+ * Copyright 2021, alex at staticlibs.net
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,8 @@
  * limitations under the License.
  */
 
-// sc create foo binpath="path\to\deno.exe run --unstable --allow-plugin --allow-read --allow-write path\to\test.js path\to\windows_scm_plugin.dll"
+import winscmStartDispatcher from "./winscmStartDispatcher.ts";
+import { WinSCMOptions } from "./types.ts";
 
-const filename = Deno.args[0]
-
-Deno.openPlugin(filename);
-const path = import.meta.url.substring("file:///".length);
-
-Deno.writeTextFileSync(path + ".1.txt", "is due to start service");
-
-await Deno.core.opAsync("op_winscm_start_dispatcher", {
-    name: "foo"
-});
-
-Deno.writeTextFileSync(path + ".2.txt", "stopping service");
+export type { WinSCMOptions };
+export { winscmStartDispatcher };
