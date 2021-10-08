@@ -18,7 +18,7 @@ build: off
 
 install:
   - curl -LO https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe
-  - rustup-init.exe -y --no-modify-path
+  - rustup-init.exe -y --default-host=x86_64-pc-windows-gnu --no-modify-path
 
 build_script:
   - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
