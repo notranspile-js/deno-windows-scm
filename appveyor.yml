@@ -12,29 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-image: Visual Studio 2019
+image: Visual Studio 2013
 
 build: off
 
 install:
-  - curl -LO https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe
+  - curl -LO https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe
   - rustup-init.exe -y --no-modify-path
 
 build_script:
   - set PATH=%PATH%;%USERPROFILE%\.cargo\bin
   - cargo build --release
-  - rename target\release\windows_scm_plugin.dll windows_scm_plugin_%APPVEYOR_REPO_TAG_NAME%.dll
+  - rename target\release\deno_windows_scm.dll deno_windows_scm_%APPVEYOR_REPO_TAG_NAME%.dll
 
 artifacts:
-  - path: target\release\windows_scm_plugin_%APPVEYOR_REPO_TAG_NAME%.dll
-    name: windows_scm_plugin_%APPVEYOR_REPO_TAG_NAME%.dll
+  - path: target\release\deno_windows_scm_%APPVEYOR_REPO_TAG_NAME%.dll
+    name: deno_windows_scm_%APPVEYOR_REPO_TAG_NAME%.dll
 
 deploy:
   description: "%APPVEYOR_REPO_TAG_NAME%"
   provider: GitHub
   auth_token:
     secure: buCEfuXIKqASLh/f4XY0gZ/OOsipoOJJkaC9sYnx6WRkrv7YBGYpsRzQevImXdGz
-  artifact: windows_scm_plugin_%APPVEYOR_REPO_TAG_NAME%.dll
+  artifact: deno_windows_scm_%APPVEYOR_REPO_TAG_NAME%.dll
   draft: false
   prerelease: false
   on:

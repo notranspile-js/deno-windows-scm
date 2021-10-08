@@ -14,7 +14,7 @@
 
 [package]
 name = "deno_windows_scm"
-version = "1.0.0"
+version = "1.1.0"
 authors = ["alex@staticlibs.net"]
 edition = "2018"
 publish = false
