@@ -14,10 +14,25 @@
  * limitations under the License.
  */
 
+/**
+ * Options object to pass to `winscmStartDispatcher`
+ */
 export type WinSCMOptions = {
+  /**
+   * absolute path to the native library deno_windows_scm_<version>.dll
+   */
   libraryPath: string,
+  /**
+   * name of the Windows Service that was previously registered
+   */
   serviceName: string,
+  /**
+   * optional, native library will use this file for logging, can be useful for troubleshooting
+   */
   logFilePath?: string,
+  /**
+   * optional, the name of the worker that is created by `winscmStartDispatcher`
+   */
   workerName?: string,
 }
 

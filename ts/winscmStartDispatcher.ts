@@ -19,6 +19,23 @@ import { WinSCMOptions, WorkerRequest, WorkerResponse } from "./types.ts";
 
 let workerStarted = false;
 
+/**
+ * Creates a Worker and connects its thread to the Service Control Manager,
+ * which causes the thread to be the service control dispatcher thread.
+ * 
+ * Can be called only once in a single process.
+ *
+ * ```ts
+ * await winscmStartDispatcher({
+ *  libraryPath: "path/to/deno_windows_scm_<version>.dll",
+ *  serviceName: "myservice",
+ *  logFilePath: "path/to/scm_log.txt", // optional, for troubleshooting
+ * })
+ * ```
+ *
+ * @param opts path to the native library and a name of the service
+ * @return a promise, that resolves when the Windows Service is stopped
+ */
 export default async function winscmStartDispatcher(opts: WinSCMOptions) {
   if (workerStarted) throw new Error("SCM worker is already started");
   if (!existsSync(opts.libraryPath)) {
