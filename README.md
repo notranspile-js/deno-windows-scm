@@ -15,6 +15,9 @@ Create SCM service using [sc tool](https://docs.microsoft.com/en-us/windows-serv
 sc create myservice binpath="path\to\deno.exe run --unstable --allow-ffi --allow-read --allow-write path\to\script.js"
 ```
 
+Place a copy of [winscmWorker.js](https://github.com/notranspile-js/deno-windows-scm/blob/master/ts/worker/winscmWorker.js)
+into your local codebase.
+
 In `script.js`:
 
 ```
@@ -24,6 +27,7 @@ import { winscmStartDispatcher } from "https://raw.githubusercontent.com/notrans
 await winscmStartDispatcher({
     libraryPath: "path/to/deno_windows_scm_<version>.dll",
     serviceName: "myservice",
+    workerPath: "c:/absolute/path/to/winscmWorker.js",
     logFilePath: "path/to/scm_log.txt", // optional, for troubleshooting
 });
 ```
