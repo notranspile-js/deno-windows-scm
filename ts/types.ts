@@ -27,6 +27,10 @@ export type WinSCMOptions = {
    */
   serviceName: string,
   /**
+   * absolute path to the local copy of a 'winscmWorker.js' file
+   */
+  workerPath: string,
+  /**
    * optional, native library will use this file for logging, can be useful for troubleshooting
    */
   logFilePath?: string,

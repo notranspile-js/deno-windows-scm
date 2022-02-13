@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-import { SCMConfig, WorkerRequest, WorkerResponse } from "./types.ts";
+// import { SCMConfig, WorkerRequest, WorkerResponse, WorkerSelf } from "./types.ts";
 
-function createErrorMessage(req: WorkerRequest, code: number): string {
+function createErrorMessage(req /*: WorkerRequest */, code /*: number */) /*: string */ {
   if (code < 0) {
-    return "WinSCM call initialization failure, details unavailbale";
+    return "WinSCM call initialization failure, details unavailable";
   }
   if (0 === req.logFilePath.length) {
     return "WinSCM call failure, 'logFilePath' option can be supplied for detailed logging";
@@ -27,14 +27,14 @@ function createErrorMessage(req: WorkerRequest, code: number): string {
     const details = Deno.readTextFileSync(req.logFilePath);
     return `WinSCM call failure, details:\n${details}`;
   } catch (_) {
-    return "WinSCM call system failure, details unavailbale";
+    return "WinSCM call system failure, details unavailable";
   }
 }
 
-self.onmessage = (e: MessageEvent) => {
-  let resp: WorkerResponse | null = null;
+self.onmessage = (e /*: MessageEvent */) => {
+  let resp /*: WorkerResponse | null */ = null;
   try {
-    const req: WorkerRequest = JSON.parse(e.data);
+    const req /*: WorkerRequest */ = JSON.parse(e.data);
 
     const dylib = Deno.dlopen(req.libraryPath, {
       "winscm_start_dispatcher": {
@@ -44,13 +44,13 @@ self.onmessage = (e: MessageEvent) => {
     });
 
     const confPath = `${req.libraryPath}.config.json`;
-    const config: SCMConfig = {
+    const config /*: SCMConfig */ = {
       serviceName: req.serviceName,
       logFilePath: req.logFilePath,
     };
     Deno.writeTextFileSync(confPath, JSON.stringify(config, null, 4));
 
-    const code = <number>dylib.symbols.winscm_start_dispatcher();
+    const code = /* <number> */ dylib.symbols.winscm_start_dispatcher();
     if (0 !== code) {
       throw new Error(createErrorMessage(req, code));
     }
