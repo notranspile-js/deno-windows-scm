@@ -24,5 +24,6 @@ const dirPath = dirname(dirname(fromFileUrl(import.meta.url)));
 const libPath = join(dirPath, "target/debug/deno_windows_scm.dll");
 const testLogPath = join(dirPath, "target/test_log.txt");
 const scmLogPath = join(dirPath, "target/scm_log.txt");
+const workerPath = join(dirPath, "ts/worker/winscmWorker.js");
 
-export { dirPath, libPath, scmLogPath, testLogPath };
+export { dirPath, libPath, scmLogPath, testLogPath, workerPath };

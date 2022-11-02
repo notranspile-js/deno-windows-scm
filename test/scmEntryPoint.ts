@@ -15,7 +15,7 @@
  */
 
 import { winscmStartDispatcher } from "../ts/mod.ts";
-import { libPath, scmLogPath } from "./paths.ts";
+import { libPath, scmLogPath, workerPath } from "./paths.ts";
 import setupLogging from "./setupLogging.ts";
 
 const logger = await setupLogging();
@@ -26,6 +26,7 @@ try {
     libraryPath: libPath,
     serviceName: "deno_windows_scm_test",
     logFilePath: scmLogPath,
+    workerPath: workerPath
   });
   logger.critical("'winscmStartDispatcher' is called, going to await on it ...");
   await prom;
